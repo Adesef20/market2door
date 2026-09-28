@@ -15,7 +15,7 @@ export default function Home() {
           HERO SECTION
       ========================= */}
       <section className="relative overflow-hidden bg-white">
-        <div className="mx-auto grid min-h-[650px] max-w-7xl items-center gap-12 px-5 py-16 sm:px-8 md:py-20 lg:grid-cols-2 lg:px-10">
+        <div className="mx-auto grid min-h-\[650px\] max-w-7xl items-center gap-12 px-5 py-16 sm:px-8 md:py-20 lg:grid-cols-2 lg:px-10">
 
           {/* Hero Content */}
           <div className="max-w-2xl">

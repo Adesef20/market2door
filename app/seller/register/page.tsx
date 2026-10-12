@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import {
   HiArrowLeft,
   HiCheckCircle,
@@ -11,12 +12,15 @@ import {
   HiEnvelope,
   HiMapPin,
   HiLockClosed,
+  HiEye,
+  HiEyeSlash,
 } from "react-icons/hi2";
 
 export default function SellerRegisterPage() {
   const [formData, setFormData] = useState({
     fullName: "",
     businessName: "",
+    businessCategory: "",
     phone: "",
     email: "",
     businessLocation: "",
@@ -24,8 +28,11 @@ export default function SellerRegisterPage() {
     confirmPassword: "",
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setFormData({
       ...formData,
@@ -33,7 +40,7 @@ export default function SellerRegisterPage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
@@ -41,7 +48,60 @@ export default function SellerRegisterPage() {
       return;
     }
 
-    console.log("Seller registration:", formData);
+    try {
+      // 1. Create the Supabase Auth account
+      const { data: authData, error: authError } =
+        await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.fullName,
+              business_name: formData.businessName,
+              phone: formData.phone,
+              business_location: formData.businessLocation,
+            },
+          },
+        });
+
+      if (authError) {
+        alert(authError.message);
+        return;
+      }
+
+      if (!authData.user) {
+        alert("Registration failed. Please try again.");
+        return;
+      }
+
+      // 2. Save seller information
+      const { error: sellerError } = await supabase
+        .from("sellers")
+        .insert({
+          id: authData.user.id,
+          full_name: formData.fullName,
+          business_name: formData.businessName,
+          business_category: formData.businessCategory,
+          phone: formData.phone,
+          email: formData.email,
+          business_location: formData.businessLocation,
+          status: "pending_payment",
+          registration_fee: 500,
+          payment_status: "pending",
+        });
+
+      if (sellerError) {
+        console.error("Seller database error:", sellerError);
+        alert(sellerError.message);
+        return;
+      }
+
+      // 3. Continue to payment
+      window.location.href = "/seller/payment";
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert("Something went wrong. Please try again.");
+    }
   };
 
   return (
@@ -50,7 +110,6 @@ export default function SellerRegisterPage() {
       {/* Header */}
       <section className="border-b border-[#E2E8E3] bg-white">
         <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm font-semibold text-[#166534] transition hover:text-[#14532D]"
@@ -58,20 +117,16 @@ export default function SellerRegisterPage() {
             <HiArrowLeft />
             Back to Market2Door
           </Link>
-
         </div>
       </section>
 
       {/* Main */}
       <main className="px-5 py-12 sm:px-8 sm:py-16 lg:px-10">
-
         <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1fr_420px]">
 
           {/* Left Side */}
           <div>
-
             <div className="max-w-2xl">
-
               <p className="text-sm font-bold uppercase tracking-widest text-[#D4A72C]">
                 Become a Seller
               </p>
@@ -85,7 +140,6 @@ export default function SellerRegisterPage() {
                 Join MARKET2DOOR and make it easier for your customers to
                 receive products from your shop or market stall.
               </p>
-
             </div>
 
             {/* Benefits */}
@@ -150,7 +204,6 @@ export default function SellerRegisterPage() {
 
             {/* Fee */}
             <div className="rounded-2xl bg-[#14532D] p-6 text-white">
-
               <p className="text-sm font-semibold text-white/70">
                 Seller Registration
               </p>
@@ -169,7 +222,6 @@ export default function SellerRegisterPage() {
                 A one-time registration fee is required before your seller
                 account can be activated.
               </p>
-
             </div>
 
             {/* Form */}
@@ -226,6 +278,34 @@ export default function SellerRegisterPage() {
                     className="w-full rounded-lg border border-[#E2E8E3] bg-white py-3 pl-10 pr-4 text-sm text-[#1F2933] outline-none transition focus:border-[#166534] focus:ring-2 focus:ring-[#166534]/10"
                   />
                 </div>
+              </div>
+
+              {/* Business Category */}
+              <div>
+                <label
+                  htmlFor="businessCategory"
+                  className="mb-2 block font-semibold text-gray-700"
+                >
+                  Business Category
+                </label>
+
+                <select
+                  id="businessCategory"
+                  name="businessCategory"
+                  value={formData.businessCategory}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-green-700"
+                >
+                  <option value="">Select your business category</option>
+                  <option value="Food">Food</option>
+                  <option value="Fashion">Fashion</option>
+                  <option value="Groceries">Groceries</option>
+                  <option value="Electronics">Electronics</option>
+                  <option value="Cosmetics">Cosmetics</option>
+                  <option value="Household Items">Household Items</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
 
               {/* Phone */}
@@ -318,14 +398,29 @@ export default function SellerRegisterPage() {
                   <input
                     id="password"
                     name="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     minLength={6}
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="Create a password"
-                    className="w-full rounded-lg border border-[#E2E8E3] bg-white py-3 pl-10 pr-4 text-sm text-[#1F2933] outline-none transition focus:border-[#166534] focus:ring-2 focus:ring-[#166534]/10"
+                    className="w-full rounded-lg border border-[#E2E8E3] bg-white py-3 pl-10 pr-12 text-sm text-[#1F2933] outline-none transition focus:border-[#166534] focus:ring-2 focus:ring-[#166534]/10"
                   />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-[#647067] hover:text-[#166534]"
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showPassword ? (
+                      <HiEyeSlash className="h-5 w-5" />
+                    ) : (
+                      <HiEye className="h-5 w-5" />
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -344,14 +439,33 @@ export default function SellerRegisterPage() {
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     required
                     minLength={6}
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     placeholder="Confirm your password"
-                    className="w-full rounded-lg border border-[#E2E8E3] bg-white py-3 pl-10 pr-4 text-sm text-[#1F2933] outline-none transition focus:border-[#166534] focus:ring-2 focus:ring-[#166534]/10"
+                    className="w-full rounded-lg border border-[#E2E8E3] bg-white py-3 pl-10 pr-12 text-sm text-[#1F2933] outline-none transition focus:border-[#166534] focus:ring-2 focus:ring-[#166534]/10"
                   />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowConfirmPassword(!showConfirmPassword)
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-[#647067] hover:text-[#166534]"
+                    aria-label={
+                      showConfirmPassword
+                        ? "Hide confirm password"
+                        : "Show confirm password"
+                    }
+                  >
+                    {showConfirmPassword ? (
+                      <HiEyeSlash className="h-5 w-5" />
+                    ) : (
+                      <HiEye className="h-5 w-5" />
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -368,7 +482,6 @@ export default function SellerRegisterPage() {
                 Your account will only be activated after the ₦500 registration
                 payment is confirmed.
               </p>
-
             </form>
 
             {/* Login */}
@@ -390,3 +503,4 @@ export default function SellerRegisterPage() {
     </div>
   );
 }
+

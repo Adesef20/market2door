@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 import {
   HiArrowRight,
   HiCheckCircle,
@@ -459,7 +460,20 @@ export default function Home() {
               className="inline-flex items-center justify-center rounded-lg border border-white/30 px-7 py-3.5 text-sm font-bold text-white transition hover:bg-white hover:text-[#14532D]"
             >
               Become a Rider
-            </Link>
+          </Link>
+
+
+
+          <Link
+            href="/admin/login"
+            className="inline-flex items-center justify-center rounded-lg
+            bg-green-800 px-5 py-3 font-semibold text-white
+             transition hover:bg-green-900"
+            >
+            Admin Login
+          </Link>
+
+
 
           </div>
         </div>
